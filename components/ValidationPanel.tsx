@@ -8,6 +8,9 @@ const LABELS: Record<MDDComponent, string> = {
   episode_type: "Episode type (single / recurrent)",
 };
 
+const EPISODE_TYPE_TOOLTIP =
+  "Recurrent: ≥2 prior MDD episodes with a ≥2-month symptom-free interval between them. Single: first episode, or if history is unclear (default to single per DSM-5).";
+
 interface ValidationPanelProps {
   result: AnalysisResult | null;
 }
@@ -29,6 +32,8 @@ export function ValidationPanel({ result }: ValidationPanelProps) {
       <ul className="space-y-3">
         {components.map((comp) => {
           const isPresent = result.presentComponents.includes(comp);
+          const showInferredBadge =
+            comp === "episode_type" && isPresent && result.episodeTypeInferred;
           return (
             <li
               key={comp}
@@ -44,18 +49,27 @@ export function ValidationPanel({ result }: ValidationPanelProps) {
                 </span>
               )}
               <span
-                className={
-                  isPresent ? "text-slate-200" : "text-slate-400"
-                }
+                className={isPresent ? "text-slate-200" : "text-slate-400"}
+                title={comp === "episode_type" ? EPISODE_TYPE_TOOLTIP : undefined}
               >
                 {LABELS[comp]}
               </span>
+              {showInferredBadge && (
+                <span className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
+                  inferred
+                </span>
+              )}
             </li>
           );
         })}
       </ul>
       {result.explanation && (
         <p className="mt-4 text-sm text-slate-400">{result.explanation}</p>
+      )}
+      {result.documentationTip && (
+        <p className="mt-2 text-sm text-amber-400/90">
+          {result.documentationTip}
+        </p>
       )}
     </div>
   );
