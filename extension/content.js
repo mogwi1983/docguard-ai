@@ -103,6 +103,7 @@
     };
     const components = ["major_keyword", "severity", "episode_type"];
 
+    const showInferred = (c) => c === "episode_type" && present.includes(c) && data.episodeTypeInferred;
     let html = `
       <div style="margin-bottom: 12px;">
         <div style="font-weight: 600; margin-bottom: 8px; color: #94a3b8; font-size: 11px; text-transform: uppercase;">MDD Checklist</div>
@@ -112,10 +113,12 @@
               `<div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px;">
                 <span style="color: ${present.includes(c) ? "#34d399" : "#f87171"}; font-weight: bold;">${present.includes(c) ? "✓" : "✕"}</span>
                 <span style="color: ${present.includes(c) ? "#e2e8f0" : "#64748b"}">${labels[c]}</span>
+                ${showInferred(c) ? '<span style="background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.4); padding: 1px 6px; border-radius: 4px; font-size: 10px; color: #f59e0b;">inferred</span>' : ""}
               </div>`
           )
           .join("")}
       </div>
+      ${data.documentationTip ? `<div style="margin-bottom: 8px; font-size: 11px; color: #f59e0b;">${data.documentationTip}</div>` : ""}
       <div style="margin-bottom: 12px;">
         <div style="font-weight: 600; margin-bottom: 6px; color: #94a3b8; font-size: 11px; text-transform: uppercase;">Suggested</div>
         <div style="background: #1e293b; padding: 10px; border-radius: 6px; font-size: 12px; font-family: monospace;">${data.suggestedText || "-"}</div>
