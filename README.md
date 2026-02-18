@@ -1,6 +1,6 @@
 # DocGuard AI
 
-**Real-time clinical documentation validator** — Chrome extension + web app. MDD (Major Depressive Disorder) MVP. Flags missing documentation components before the note is locked.
+**Real-time clinical documentation validator** — Chrome extension + web app. Validates MDD (Major Depressive Disorder), CHF (Congestive Heart Failure), and Opioid Dependence/SUD. Flags missing documentation components before the note is locked.
 
 ## Quick Start (2-Minute Demo)
 
@@ -22,10 +22,10 @@
    Open [http://localhost:3000](http://localhost:3000)
 
 4. **Paste & Analyze**
-   - Paste: `Patient has major depressive disorder, moderate severity`
+   - Select condition: MDD | CHF | Opioid/SUD | Auto-detect
+   - Paste a clinical note (e.g. `Patient has major depressive disorder, moderate severity`)
    - Click **Analyze**
-   - See: ✅ Major keyword, ✅ Severity, ❌ Episode type
-   - Copy the suggested diagnosis with ICD-10 code
+   - See component checklist with ✅/❌ and suggested diagnosis with ICD-10 code
 
 5. **Chrome Extension (optional)**
    - Go to `chrome://extensions`
@@ -39,18 +39,28 @@
 | Component | Description |
 |-----------|-------------|
 | **Next.js 14 app** | Landing page + paste-and-analyze UI, dark navy theme |
-| **`/api/analyze`** | GPT-4o integration with regex fallback for MDD validation |
-| **Chrome extension** | Manifest V3, reads textarea content, floating sidebar |
-| **MDD rules** | 3 components: "major" keyword, severity, episode type |
+| **`/api/analyze`** | GPT-4o for MDD; regex for CHF and Opioid/SUD |
+| **Chrome extension** | Manifest V3, reads textarea content, floating sidebar (auto-detects condition) |
+| **Rule engines** | MDD, CHF, and SUD validation rules |
 
-## MDD Validation
+## Condition Validation
 
-Required components:
-1. **"Major" keyword** — "major depressive disorder" or "MDD"
-2. **Severity** — mild / moderate / severe (with or without psychotic features)
-3. **Episode type** — single episode OR recurrent
+### MDD (Major Depressive Disorder)
+- **"Major" keyword** — "major depressive disorder" or "MDD"
+- **Severity** — mild / moderate / severe (with or without psychotic features)
+- **Episode type** — single episode OR recurrent
+- ICD-10: F32.0, F33.1, F32.3, etc.
 
-ICD-10 examples: F32.0 (mild single), F33.1 (moderate recurrent), F32.3 (severe w/ psychosis single).
+### CHF (Congestive Heart Failure)
+- **Type** — systolic (EF &lt; 50%) vs diastolic (EF ≥ 50%) vs combined
+- **Acuity** — acute / chronic / acute-on-chronic
+- ICD-10: I50.21–I50.43. Compensated CHF ≠ resolved — document as chronic.
+
+### Opioid Dependence / SUD
+- **Substance** — opioid, alcohol, cannabis, stimulant
+- **Severity** — dependence (F11.20) vs abuse (F11.10) vs unspecified
+- **Remission** — F11.21 for MAT / in remission
+- Physiologic dependence ≠ addiction — stable chronic opioid therapy = F11.20.
 
 ## Environment Variables
 
@@ -74,6 +84,8 @@ docguard-ai/
 │   └── SuggestionCard.tsx
 ├── lib/
 │   ├── mddRules.ts
+│   ├── chfRules.ts
+│   ├── sudRules.ts
 │   └── analyzeNote.ts
 ├── types/
 │   └── validation.ts

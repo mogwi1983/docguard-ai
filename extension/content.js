@@ -29,7 +29,7 @@
     return fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ noteText: text, conditionType: "mdd" }),
+      body: JSON.stringify({ noteText: text, conditionType: "auto" }),
     })
       .then((r) => r.json())
       .catch(() => null);
@@ -95,23 +95,60 @@
     if (!content) return;
 
     const present = data.presentComponents || [];
-    const missing = data.missingComponents || [];
-    const labels = {
-      major_keyword: '"Major" keyword (MDD)',
-      severity: "Severity (mild / moderate / severe)",
-      episode_type: "Episode type (single / recurrent)",
-    };
-    const components = ["major_keyword", "severity", "episode_type"];
+    const cond = data.conditionType || "mdd";
+    const labels =
+      cond === "chf"
+        ? { chf_keyword: "CHF documented", type: "Type", acuity: "Acuity" }
+        : cond === "opioid_sud"
+          ? { substance: "Substance", severity: "Severity", remission_status: "Remission" }
+          : {
+              major_keyword: '"Major" keyword (MDD)',
+              severity: "Severity",
+              episode_type: "Episode type",
+            };
+    const components =
+      cond === "chf"
+        ? ["chf_keyword", "type", "acuity"]
+        : cond === "opioid_sud"
+          ? ["substance", "severity", "remission_status"]
+          : ["major_keyword", "severity", "episode_type"];
+    const title =
+      cond === "chf" ? "CHF" : cond === "opioid_sud" ? "Opioid/SUD" : "MDD";
 
-    let html = `
+    let chips = "";
+    if (cond === "chf" && (data.chfType || data.chfAcuity)) {
+      chips =
+        '<div style="margin-bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap;">' +
+        [data.chfType, data.chfAcuity]
+          .filter(Boolean)
+          .map(
+            (v) =>
+              `<span style="background: rgba(239,68,68,0.2); color: #f87171; padding: 4px 8px; border-radius: 6px; font-size: 11px;">${v}</span>`
+          )
+          .join("") +
+        "</div>";
+    }
+    if (cond === "opioid_sud" && (data.sudSubstance || data.sudSeverity)) {
+      const vals = [data.sudSubstance, data.sudSeverity, data.sudRemissionStatus]
+        .filter((v) => v && v !== "unspecified")
+        .map(
+          (v) =>
+            `<span style="background: rgba(245,158,11,0.2); color: #fbbf24; padding: 4px 8px; border-radius: 6px; font-size: 11px;">${v}</span>`
+        );
+      if (vals.length) chips = '<div style="margin-bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap;">' + vals.join("") + "</div>";
+    }
+
+    let html =
+      chips +
+      `
       <div style="margin-bottom: 12px;">
-        <div style="font-weight: 600; margin-bottom: 8px; color: #94a3b8; font-size: 11px; text-transform: uppercase;">MDD Checklist</div>
+        <div style="font-weight: 600; margin-bottom: 8px; color: #94a3b8; font-size: 11px; text-transform: uppercase;">${title} Checklist</div>
         ${components
           .map(
             (c) =>
               `<div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px;">
                 <span style="color: ${present.includes(c) ? "#34d399" : "#f87171"}; font-weight: bold;">${present.includes(c) ? "✓" : "✕"}</span>
-                <span style="color: ${present.includes(c) ? "#e2e8f0" : "#64748b"}">${labels[c]}</span>
+                <span style="color: ${present.includes(c) ? "#e2e8f0" : "#64748b"}">${labels[c] || c}</span>
               </div>`
           )
           .join("")}

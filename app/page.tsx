@@ -8,8 +8,8 @@ export default function Home() {
           DocGuard AI
         </h1>
         <p className="mt-2 text-lg text-slate-400">
-          Real-time clinical documentation validator for MDD. Flag missing
-          components before the note is locked.
+          Real-time clinical documentation validator for MDD, CHF, and
+          Opioid/SUD. Flag missing components before the note is locked.
         </p>
       </header>
 
@@ -18,8 +18,8 @@ export default function Home() {
       </div>
 
       <footer className="mt-12 text-center text-sm text-slate-500">
-        MDD MVP — Major Depressive Disorder validation. Chrome extension
-        available for inline EHR validation.
+        MDD, CHF, and Opioid/SUD validation. Chrome extension available for
+        inline EHR validation.
       </footer>
     </main>
   );

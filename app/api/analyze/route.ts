@@ -18,9 +18,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (conditionType !== "mdd") {
+    const validTypes = ["mdd", "chf", "opioid_sud", "auto"];
+    if (!validTypes.includes(conditionType)) {
       return NextResponse.json(
-        { error: "Only 'mdd' is supported in MVP" },
+        { error: `conditionType must be one of: ${validTypes.join(", ")}` },
         { status: 400 }
       );
     }
@@ -28,12 +29,12 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.OPENAI_API_KEY;
     let result: AnalysisResult | null = null;
 
-    if (apiKey) {
+    if (apiKey && conditionType === "mdd") {
       result = await analyzeNoteWithGPT(noteText, apiKey);
     }
 
     if (!result) {
-      result = analyzeNoteWithRegex(noteText);
+      result = analyzeNoteWithRegex(noteText, conditionType);
     }
 
     result = mergeSymptomExtraction(result, noteText);

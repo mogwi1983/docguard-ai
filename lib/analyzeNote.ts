@@ -1,6 +1,8 @@
 import OpenAI from "openai";
-import type { AnalysisResult } from "@/types/validation";
+import type { AnalysisResult, ConditionType } from "@/types/validation";
 import { validateMDDWithRegex } from "./mddRules";
+import { validateCHFWithRegex } from "./chfRules";
+import { validateSUDWithRegex } from "./sudRules";
 import {
   extractSymptoms,
   getSymptomDisplayLabels,
@@ -68,10 +70,29 @@ Respond with ONLY valid JSON matching this exact structure:
 
 If no MDD is mentioned, set detected=false, valid=false, missingComponents=["major_keyword","severity","episode_type"], presentComponents=[], suggestedText="", icd10="", explanation="No MDD diagnosis found in note.", rafImpact="low", symptomsExtracted=[], symptomCount=0, hasSI=false, hasPsychoticFeatures=false, severityRecommendation=null, severityExplicit=false.`;
 
+/** Auto-detect which condition is present in the note (priority: CHF > opioid/SUD > MDD) */
+export function detectConditionFromNote(noteText: string): "mdd" | "chf" | "opioid_sud" {
+  const n = (noteText || "").toLowerCase();
+  if (
+    /\bchf\b|\bcongestive\s+heart\s+failure\b|\bheart\s+failure\b|\bhfr?ef\b|\bhfp?ef\b|\bfurosemide\b|\blasix\b/.test(
+      n
+    )
+  )
+    return "chf";
+  if (
+    /\bopioid\b|\bopiates?\b|\boud\b|\bhydrocodone\b|\boxycodone\b|\btramadol\b|\bmorphine\b|\bfentanyl\b|\bbuprenorphine\b|\bsuboxone\b|\bnaltrexone\b|\bvivitrol\b|\bmethadone\b|\balcohol\s+dependence\b|\baud\b|\bcannabis\s+use\b|\bstimulant\s+use\b/.test(
+      n
+    )
+  )
+    return "opioid_sud";
+  return "mdd";
+}
+
 export function mergeSymptomExtraction(
   result: AnalysisResult,
   noteText: string
 ): AnalysisResult {
+  if (result.conditionType !== "mdd") return result;
   const severityDocumented = result.presentComponents.includes("severity");
   const extracted = extractSymptoms(noteText, severityDocumented);
   return {
@@ -117,6 +138,15 @@ export async function analyzeNoteWithGPT(
   }
 }
 
-export function analyzeNoteWithRegex(noteText: string): AnalysisResult {
+export function analyzeNoteWithRegex(
+  noteText: string,
+  conditionType: ConditionType = "mdd"
+): AnalysisResult {
+  const effectiveType =
+    conditionType === "auto"
+      ? detectConditionFromNote(noteText)
+      : conditionType;
+  if (effectiveType === "chf") return validateCHFWithRegex(noteText);
+  if (effectiveType === "opioid_sud") return validateSUDWithRegex(noteText);
   return validateMDDWithRegex(noteText);
 }

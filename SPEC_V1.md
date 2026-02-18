@@ -1,6 +1,6 @@
-# DocGuard AI — Spec V1
-*MDD MVP — Real-time clinical documentation validator*
-*Authored by Samantha · Feb 17, 2026*
+# DocGuard AI — Spec V1 (Updated)
+*MDD, CHF, Opioid/SUD — Real-time clinical documentation validator*
+*Authored by Samantha · Feb 17, 2026 · Updated with CHF and Opioid Dependence/SUD*
 
 ---
 
@@ -20,8 +20,8 @@ If any component is missing, the diagnosis won't capture the HCC properly.
 ## The Solution — DocGuard AI
 A Chrome extension + lightweight web app that reads the clinician's note in real time and flags missing documentation components **before the note is locked**.
 
-**MVP scope:** MDD documentation validation only.
-**Tech stack:** Chrome extension (Manifest V3) + Next.js 14 web app + OpenAI GPT-4o for analysis.
+**Scope:** MDD, CHF, and Opioid Dependence/SUD documentation validation.
+**Tech stack:** Chrome extension (Manifest V3) + Next.js 14 web app + OpenAI GPT-4o for MDD; regex for CHF and SUD.
 
 ---
 
@@ -42,7 +42,7 @@ A Chrome extension + lightweight web app that reads the clinician's note in real
 - Auth: simple password or Firebase (can start with no auth for MVP)
 
 ### Component 3: Analysis Engine (`/api/analyze`)
-Input: `{ noteText: string, conditionType: "mdd" }`
+Input: `{ noteText: string, conditionType: "mdd" | "chf" | "opioid_sud" | "auto" }`
 
 Output:
 ```json
@@ -164,8 +164,20 @@ NEXT_PUBLIC_APP_URL=https://docguard.ai (or localhost:3000)
 
 ---
 
+## CHF Validation (Added)
+- **Type:** systolic (EF &lt; 50%) | diastolic (EF ≥ 50%) | combined
+- **Acuity:** acute | chronic | acute-on-chronic
+- ICD-10: I50.21–I50.43
+- Key insight: Compensated CHF ≠ resolved. Document as chronic.
+
+## Opioid Dependence / SUD Validation (Added)
+- **F11.20** — Opioid dependence, uncomplicated (chronic opioid therapy, physiologic dependence)
+- **F11.21** — Opioid dependence, in remission (MAT: buprenorphine, naltrexone, methadone)
+- **F11.10** — Opioid abuse; **F11.90** — Unspecified
+- Key insight: Physiologic dependence ≠ addiction.
+
 ## Future Expansion (post-MVP)
-- Add more diagnosis types: CHF (systolic/diastolic/acute/chronic), COPD (severity + exacerbation), CKD (stage), Diabetes (type + complication)
+- COPD (severity + exacerbation), CKD (stage), Diabetes (type + complication)
 - HCC capture scoring: show RAF weight impact of adding missing components
 - Multi-condition note scanning: analyze entire note, surface all documentation gaps
 - Team dashboard: aggregate documentation quality metrics across providers
