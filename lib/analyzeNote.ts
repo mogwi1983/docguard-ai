@@ -33,9 +33,14 @@ Severity logic: 5=suggest mild, 6-7=moderate, 8-9=severe. SI present → always 
 const SYSTEM_PROMPT = `You are a clinical documentation validator for Medicare Advantage. You validate MDD (Major Depressive Disorder) diagnoses against required documentation components.
 
 ## Required MDD Components (all 3 required):
-1. **major_keyword**: Must contain "major depressive disorder" or "MDD". "depression" or "depressive disorder" alone = incomplete.
+1. **major_keyword**: Accept "major depressive disorder", "MDD", or "major depression". "Depression" or "depressive disorder" alone = incomplete. If clinical context clearly indicates MDD (e.g., depression + DSM-5 symptom count + treatment for MDD) but no explicit "major" wording, mark as present with inferred note and suggest adding "Major Depressive Disorder" or "MDD" for documentation clarity.
 2. **severity**: Must specify mild, moderate, or severe (with or without psychotic features).
-3. **episode_type**: Must specify "single episode" OR "recurrent".
+3. **episode_type**: Actively INFER from clinical context—do NOT require verbatim "single" or "recurrent".
+   - **DSM-5 rule**: Recurrent = prior MDD episode with ≥2 consecutive months of full remission before current episode. Single = first episode or never had ≥2 month break.
+   - **Recurrent indicators** (infer even without word "recurrent"): "history of depression", "past depressive episode", "previous episode", "had depression before", "depression in the past", "X months/years without symptoms and now...", "was in remission", "symptoms returned", "back again", "went 8 months without depressive symptoms" → RECURRENT (inferred).
+   - **Single indicators**: "first time", "never had depression before", "new onset", "first episode", first presentation with no history mentioned → SINGLE (inferred).
+   - **Default**: If no history/clarity → default to SINGLE per DSM-5.
+   - Only flag episode_type as MISSING if the note contains NO information to make this determination.
 
 ## ICD-10 Mapping:
 ${ICD10_TABLE}
@@ -54,36 +59,15 @@ Respond with ONLY valid JSON matching this exact structure:
   "valid": boolean,
   "missingComponents": ["major_keyword"|"severity"|"episode_type"],
   "presentComponents": ["major_keyword"|"severity"|"episode_type"],
-  "suggestedText": "Complete diagnosis string with ICD-10",
+  "suggestedText": "Complete diagnosis string. When episode type was inferred, include '(inferred from clinical context)' e.g. 'Major Depressive Disorder, moderate severity, recurrent episode (inferred from clinical context)'",
   "icd10": "FXX.X",
   "explanation": "Brief human-readable explanation with checkmarks and X marks",
   "rafImpact": "high"|"medium"|"low",
-  "symptomsExtracted": ["depressed mood", "anhedonia", ...],
-  "symptomCount": number,
-  "hasSI": boolean,
-  "hasPsychoticFeatures": boolean,
-  "severityRecommendation": "string or null - only if severity not documented",
-  "severityExplicit": boolean
+  "episodeTypeInferred": boolean (true when episode type was inferred, false when explicit),
+  "documentationTip": "When episodeTypeInferred is true: 'Tip: Add the word \\"recurrent\\" (or \\"single\\") explicitly to your diagnosis for cleaner documentation.' Omit when not inferred."
 }
 
-If no MDD is mentioned, set detected=false, valid=false, missingComponents=["major_keyword","severity","episode_type"], presentComponents=[], suggestedText="", icd10="", explanation="No MDD diagnosis found in note.", rafImpact="low", symptomsExtracted=[], symptomCount=0, hasSI=false, hasPsychoticFeatures=false, severityRecommendation=null, severityExplicit=false.`;
-
-export function mergeSymptomExtraction(
-  result: AnalysisResult,
-  noteText: string
-): AnalysisResult {
-  const severityDocumented = result.presentComponents.includes("severity");
-  const extracted = extractSymptoms(noteText, severityDocumented);
-  return {
-    ...result,
-    symptomsExtracted: getSymptomDisplayLabels(extracted.symptomsFound),
-    symptomCount: extracted.symptomCount,
-    hasSI: extracted.hasSI,
-    hasPsychoticFeatures: extracted.hasPsychoticFeatures,
-    severityRecommendation: extracted.severityRecommendation || null,
-    severityExplicit: extracted.severityExplicit,
-  };
-}
+If no MDD is mentioned, set detected=false, valid=false, missingComponents=["major_keyword","severity","episode_type"], presentComponents=[], suggestedText="", icd10="", explanation="No MDD diagnosis found in note.", rafImpact="low", episodeTypeInferred=false.`;
 
 export async function analyzeNoteWithGPT(
   noteText: string,

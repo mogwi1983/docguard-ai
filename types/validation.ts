@@ -12,18 +12,10 @@ export interface AnalysisResult {
   icd10: string;
   explanation: string;
   rafImpact: "high" | "medium" | "low";
-  /** DSM-5 symptoms extracted from note (display labels) */
-  symptomsExtracted?: string[];
-  /** Count of DSM-5 symptoms found (1-9) */
-  symptomCount?: number;
-  /** Suicidal ideation present */
-  hasSI?: boolean;
-  /** Psychotic features mentioned */
-  hasPsychoticFeatures?: boolean;
-  /** AI-suggested severity when not documented */
-  severityRecommendation?: string | null;
-  /** True if severity is already documented in note */
-  severityExplicit?: boolean;
+  /** True when episode type was inferred from clinical context rather than explicit */
+  episodeTypeInferred?: boolean;
+  /** Documentation tip when inference was used (suggests adding explicit wording) */
+  documentationTip?: string;
 }
 
 export interface AnalyzeRequest {
