@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { AnalysisResult, AnalyzeRequest } from "@/types/validation";
-import { analyzeNoteWithGPT, analyzeNoteWithRegex } from "@/lib/analyzeNote";
+import {
+  analyzeNoteWithGPT,
+  analyzeNoteWithRegex,
+  mergeSymptomExtraction,
+} from "@/lib/analyzeNote";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,6 +36,7 @@ export async function POST(request: NextRequest) {
       result = analyzeNoteWithRegex(noteText);
     }
 
+    result = mergeSymptomExtraction(result, noteText);
     return NextResponse.json(result);
   } catch (err) {
     console.error("Analyze API error:", err);
