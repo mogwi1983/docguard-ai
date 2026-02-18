@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { AnalysisResult, AnalyzeRequest } from "@/types/validation";
 import { analyzeNoteWithGPT, analyzeNoteWithRegex } from "@/lib/analyzeNote";
+import { enrichWithRaf } from "@/lib/validationRules";
+
+const VALID_CONDITIONS = ["mdd", "chf", "copd", "ckd", "diabetes", "auto"];
 
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as AnalyzeRequest;
-    const { noteText, conditionType = "mdd" } = body;
+    const { noteText, conditionType = "auto" } = body;
 
     if (!noteText || typeof noteText !== "string") {
       return NextResponse.json(
@@ -14,9 +17,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (conditionType !== "mdd") {
+    if (!VALID_CONDITIONS.includes(conditionType)) {
       return NextResponse.json(
-        { error: "Only 'mdd' is supported in MVP" },
+        { error: `conditionType must be one of: ${VALID_CONDITIONS.join(", ")}` },
         { status: 400 }
       );
     }
@@ -25,11 +28,15 @@ export async function POST(request: NextRequest) {
     let result: AnalysisResult | null = null;
 
     if (apiKey) {
-      result = await analyzeNoteWithGPT(noteText, apiKey);
+      result = await analyzeNoteWithGPT(noteText, apiKey, conditionType);
     }
 
     if (!result) {
-      result = analyzeNoteWithRegex(noteText);
+      result = analyzeNoteWithRegex(noteText, conditionType);
+    }
+
+    if (result) {
+      result = enrichWithRaf(result);
     }
 
     return NextResponse.json(result);

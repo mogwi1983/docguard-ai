@@ -13,7 +13,7 @@ export function SuggestionCard({ result }: SuggestionCardProps) {
   if (!result) return null;
 
   const textToCopy = result.icd10
-    ? `${result.suggestedText.replace(/\s*\([F0-9.]+\)\s*$/, "").trim()} (${result.icd10})`
+    ? `${result.suggestedText.replace(/\s*\([A-Z0-9.]+\)\s*$/i, "").trim()} (${result.icd10})`
     : result.suggestedText;
 
   const handleCopy = async () => {

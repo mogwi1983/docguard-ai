@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import type { AnalysisResult } from "@/types/validation";
-import { validateMDDWithRegex } from "./mddRules";
+import type { AnalysisResult, ConditionType } from "@/types/validation";
+import { validateCondition } from "./validationRules";
 
 const ICD10_TABLE = `
 | Severity | Single Episode | Recurrent |
@@ -40,9 +40,15 @@ If no MDD is mentioned, set detected=false, valid=false, missingComponents=["maj
 
 export async function analyzeNoteWithGPT(
   noteText: string,
-  apiKey: string
+  apiKey: string,
+  conditionType: ConditionType = "mdd"
 ): Promise<AnalysisResult | null> {
   if (!apiKey) return null;
+
+  // GPT integration currently supports MDD only; use regex for other conditions
+  if (conditionType !== "mdd" && conditionType !== "auto") {
+    return null;
+  }
 
   const client = new OpenAI({ apiKey });
 
@@ -70,6 +76,9 @@ export async function analyzeNoteWithGPT(
   }
 }
 
-export function analyzeNoteWithRegex(noteText: string): AnalysisResult {
-  return validateMDDWithRegex(noteText);
+export function analyzeNoteWithRegex(
+  noteText: string,
+  conditionType: ConditionType = "auto"
+): AnalysisResult {
+  return validateCondition(noteText, conditionType);
 }

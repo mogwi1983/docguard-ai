@@ -1,5 +1,5 @@
 (function () {
-  const API_URL = "http://localhost:3000/api/analyze";
+  const API_URL = "http://localhost:3001/api/analyze";
 
   let panel = null;
   let debounceTimer = null;
@@ -24,12 +24,23 @@
     return "";
   }
 
+  function detectCondition(text) {
+    const n = (text || "").toLowerCase().replace(/\s+/g, " ").trim();
+    if (/\bmdd\b|\bmajor\s+depressive\s+disorder\b/.test(n)) return "mdd";
+    if (/\bchf\b|\bcongestive\s+heart\s+failure\b|\bheart\s+failure\b/.test(n)) return "chf";
+    if (/\bcopd\b|\bchronic\s+obstructive\s+pulmonary\b|\bemphysema\b/.test(n)) return "copd";
+    if (/\bckd\b|\bchronic\s+kidney\s+disease\b|\besrd\b|\bend\s+stage\s+renal\b/.test(n)) return "ckd";
+    if (/\btype\s*2\s+diabetes\b|\bt2dm\b|\bdiabetes\s+mellitus\b|\bdiabetic\b/.test(n)) return "diabetes";
+    return "auto";
+  }
+
   function analyzeNote(text) {
     if (!text.trim()) return Promise.resolve(null);
+    const conditionType = detectCondition(text);
     return fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ noteText: text, conditionType: "mdd" }),
+      body: JSON.stringify({ noteText: text, conditionType }),
     })
       .then((r) => r.json())
       .catch(() => null);
@@ -90,28 +101,36 @@
     return container;
   }
 
+  const COMPONENT_LABELS = {
+    mdd: { major_keyword: '"Major" keyword (MDD)', severity: "Severity (mild / moderate / severe)", episode_type: "Episode type (single / recurrent)" },
+    chf: { type: "Type (systolic/diastolic)", acuity: "Acuity (acute/chronic)" },
+    copd: { severity: "Severity (GOLD 1-4)", exacerbation_status: "Exacerbation status" },
+    ckd: { stage: "Stage (1-5, ESRD)" },
+    diabetes: { type: "Type 2", complication: "Complication (with/without)" },
+  };
+
   function renderResult(data) {
     const content = document.getElementById("docguard-content");
     if (!content) return;
 
     const present = data.presentComponents || [];
     const missing = data.missingComponents || [];
-    const labels = {
-      major_keyword: '"Major" keyword (MDD)',
-      severity: "Severity (mild / moderate / severe)",
-      episode_type: "Episode type (single / recurrent)",
-    };
-    const components = ["major_keyword", "severity", "episode_type"];
+    const cond = data.conditionType || "mdd";
+    const labels = COMPONENT_LABELS[cond] || COMPONENT_LABELS.mdd;
+    const components = [...present, ...missing].filter((c, i, arr) => arr.indexOf(c) === i);
+
+    const conditionTitles = { mdd: "MDD", chf: "CHF", copd: "COPD", ckd: "CKD", diabetes: "Diabetes" };
+    const title = conditionTitles[cond] || "Checklist";
 
     let html = `
       <div style="margin-bottom: 12px;">
-        <div style="font-weight: 600; margin-bottom: 8px; color: #94a3b8; font-size: 11px; text-transform: uppercase;">MDD Checklist</div>
+        <div style="font-weight: 600; margin-bottom: 8px; color: #94a3b8; font-size: 11px; text-transform: uppercase;">Detected: ${title} — Checklist</div>
         ${components
           .map(
             (c) =>
               `<div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px;">
                 <span style="color: ${present.includes(c) ? "#34d399" : "#f87171"}; font-weight: bold;">${present.includes(c) ? "✓" : "✕"}</span>
-                <span style="color: ${present.includes(c) ? "#e2e8f0" : "#64748b"}">${labels[c]}</span>
+                <span style="color: ${present.includes(c) ? "#e2e8f0" : "#64748b"}">${labels[c] || c}</span>
               </div>`
           )
           .join("")}
@@ -121,6 +140,11 @@
         <div style="background: #1e293b; padding: 10px; border-radius: 6px; font-size: 12px; font-family: monospace;">${data.suggestedText || "-"}</div>
         <div style="margin-top: 6px; font-size: 12px;"><code style="background: #1e293b; padding: 2px 6px; border-radius: 4px;">${data.icd10 || ""}</code></div>
       </div>
+      ${(data.rafDollarImpact || 0) > 0 ? `
+      <div style="margin-top: 12px; padding: 8px; background: #451a1a; border-radius: 6px; font-size: 11px; color: #fca5a5;">
+        RAF impact: ~$${Math.round(data.rafDollarImpact).toLocaleString()}/patient/year if corrected
+      </div>
+      ` : ""}
     `;
     content.innerHTML = html;
   }
@@ -143,7 +167,7 @@
       } else {
         if (content) {
           content.innerHTML =
-            '<p style="color: #f87171;">Could not reach DocGuard API. Ensure the web app is running at localhost:3000.</p>';
+            '<p style="color: #f87171;">Could not reach DocGuard API. Ensure the web app is running at localhost:3001.</p>';
         }
       }
     });

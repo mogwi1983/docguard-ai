@@ -1,15 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import type { AnalysisResult } from "@/types/validation";
+import type { AnalysisResult, ConditionType } from "@/types/validation";
 import { ValidationPanel } from "./ValidationPanel";
 import { SuggestionCard } from "./SuggestionCard";
+
+const CONDITIONS: { value: ConditionType; label: string }[] = [
+  { value: "auto", label: "Auto-detect" },
+  { value: "mdd", label: "MDD" },
+  { value: "chf", label: "CHF" },
+  { value: "copd", label: "COPD" },
+  { value: "ckd", label: "CKD" },
+  { value: "diabetes", label: "Diabetes" },
+];
 
 export function NoteAnalyzer() {
   const [noteText, setNoteText] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [conditionType, setConditionType] = useState<ConditionType>("auto");
 
   const handleAnalyze = async () => {
     setError(null);
@@ -19,7 +29,7 @@ export function NoteAnalyzer() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ noteText, conditionType: "mdd" }),
+        body: JSON.stringify({ noteText, conditionType }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -37,6 +47,33 @@ export function NoteAnalyzer() {
   return (
     <div className="flex flex-col gap-6">
       <div>
+        <div className="mb-3 flex flex-wrap items-center gap-4">
+          <label
+            htmlFor="condition"
+            className="text-sm font-medium text-slate-300"
+          >
+            Condition:
+          </label>
+          <select
+            id="condition"
+            value={conditionType}
+            onChange={(e) =>
+              setConditionType(e.target.value as ConditionType)
+            }
+            className="rounded-lg border border-navy-700 bg-navy-900/80 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            {CONDITIONS.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          {conditionType === "auto" && (
+            <span className="text-xs text-slate-500">
+              Detects MDD, CHF, COPD, CKD, or Diabetes from text
+            </span>
+          )}
+        </div>
         <label
           htmlFor="note"
           className="mb-2 block text-sm font-medium text-slate-300"
@@ -47,7 +84,7 @@ export function NoteAnalyzer() {
           id="note"
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
-          placeholder="e.g. Patient presents with major depressive disorder, moderate severity. History of recurrent episodes..."
+          placeholder="e.g. Patient has CHF. Or: Major depressive disorder, moderate, recurrent..."
           className="w-full rounded-lg border border-navy-700 bg-navy-900/80 px-4 py-3 text-slate-200 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           rows={6}
         />
