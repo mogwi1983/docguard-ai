@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "DocGuard AI",
+  "version": "1.0.0",
+  "description": "Real-time clinical documentation validator for MDD",
+  "permissions": ["activeTab"],
+  "host_permissions": ["http://localhost:3000/*", "https://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "DocGuard AI - Validate Note"
+  },
+  "commands": {
+    "toggle-panel": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+D",
+        "mac": "Command+Shift+D"
+      },
+      "description": "Toggle DocGuard AI panel"
+    }
+  }
+}
