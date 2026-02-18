@@ -1,0 +1,17 @@
+# nginx config for DocGuard AI on VPS
+# Place in /etc/nginx/sites-available/ or include in main config
+# sudo ln -s /etc/nginx/sites-available/docguard /etc/nginx/sites-enabled/
+# sudo nginx -t && sudo systemctl reload nginx
+
+server {
+    listen 80;
+    server_name docguard.jamesrodriguez.dev;
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
