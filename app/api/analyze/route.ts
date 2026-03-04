@@ -3,7 +3,6 @@ import type { AnalysisResult, AnalyzeRequest } from "@/types/validation";
 import {
   analyzeNoteWithGPT,
   analyzeNoteWithRegex,
-  mergeSymptomExtraction,
 } from "@/lib/analyzeNote";
 
 export async function POST(request: NextRequest) {
@@ -36,7 +35,6 @@ export async function POST(request: NextRequest) {
       result = analyzeNoteWithRegex(noteText);
     }
 
-    result = mergeSymptomExtraction(result, noteText);
     return NextResponse.json(result);
   } catch (err) {
     console.error("Analyze API error:", err);
