@@ -24,12 +24,6 @@ export function ValidationPanel({ result }: ValidationPanelProps) {
     "episode_type",
   ];
 
-  const symptoms = result.symptomsExtracted ?? [];
-  const symptomCount = result.symptomCount ?? 0;
-  const hasSI = result.hasSI ?? false;
-  const severityRecommendation = result.severityRecommendation;
-  const severityExplicit = result.severityExplicit ?? false;
-
   return (
     <div className="rounded-lg border border-navy-700 bg-navy-900/60 p-5">
       <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-300">
